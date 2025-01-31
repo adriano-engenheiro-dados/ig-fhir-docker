@@ -1,0 +1,50 @@
+FROM ubuntu:latest
+
+# Instalação de dependências
+RUN apt-get update && \
+    apt-get install -y nodejs npm default-jre maven httpie ruby-full \
+        build-essential zlib1g-dev curl apache2 dos2unix git tzdata \
+        python3 python3-pip python3-venv && \
+    ln -fs /usr/share/zoneinfo/America/Sao_Paulo /etc/localtime && \
+    dpkg-reconfigure --frontend noninteractive tzdata && \
+    gem install jekyll bundler && \
+    npm install -g --silent fsh-sushi@3.6.1 fhirpath@3.10.1 && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Criar e ativar um ambiente virtual Python
+RUN python3 -m venv /ig/venv
+ENV PATH="/ig/venv/bin:$PATH"
+
+# Instalar Flask no ambiente virtual
+RUN pip install --no-cache-dir flask
+
+# Definir o diretório de trabalho
+WORKDIR /ig
+
+# Copiar todos os arquivos para dentro do container
+COPY . .
+
+# Definir permissões de execução nos scripts
+RUN chmod +x *.sh _genonce.sh
+
+# Criar o diretório de destino para o conteúdo da publicação
+#RUN mkdir -p /var/www/html/guia
+
+# Executar os scripts de publicação na build
+RUN ./_updatePublisher.sh --yes \
+&& export JAVA_TOOL_OPTIONS="-Xmx4G"; ./_genonce.sh --yes \
+#&& cp -r output/. /var/www/html/guia
+&& cp -r output/. /var/www/html
+
+# Copiar a página HTML e o servidor Flask
+#COPY index.html /var/www/html/
+COPY server.py /ig/server.py
+
+# Expor as portas necessárias
+EXPOSE 80 5000
+
+# Comando para iniciar Apache + Flask juntos corretamente
+CMD service apache2 start && \
+    nohup /ig/venv/bin/python /ig/server.py > /dev/null 2>&1 & \
+    exec apache2ctl -D FOREGROUND

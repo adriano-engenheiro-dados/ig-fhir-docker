@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atualizar Guia</title>
+</head>
+<body>
+    <h1>Guia de Implementação</h1>
+    <button id="atualizarBtn">Atualizar Guia</button>
+    <p id="mensagem"></p>
+
+    <script>
+        document.getElementById("atualizarBtn").addEventListener("click", function() {
+            fetch("http://apache:5000/atualizar")
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById("mensagem").innerText = data.mensagem || "Erro ao atualizar!";
+                })
+                .catch(error => {
+                    document.getElementById("mensagem").innerText = "Erro ao conectar ao servidor!";
+                });
+        });
+    </script>
+</body>
+</html>
